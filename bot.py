@@ -14,7 +14,7 @@ TWITCH_USERNAME = os.getenv('TWITCH_USERNAME')
 TWITCH_CLIENT_ID = os.getenv('TWITCH_CLIENT_ID')
 TWITCH_CLIENT_SECRET = os.getenv('TWITCH_CLIENT_SECRET')
 
-GIF_URL = "https://media1.tenor.com/m/rPwEUfbZP7oAAAAd/varya.gif"
+GIF_URL = "https://media.giphy.com/media/xT9IgzoKnwFNmISR8I/giphy.gif"
 
 intents = discord.Intents.default()
 intents.message_content = True
