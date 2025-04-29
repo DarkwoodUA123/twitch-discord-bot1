@@ -2,6 +2,7 @@ import discord
 import os
 import requests
 from dotenv import load_dotenv
+from discord.ext import commands
 
 # Загружаем переменные окружения из .env файла
 load_dotenv()
@@ -13,10 +14,10 @@ TWITCH_USERNAME = os.getenv('TWITCH_USERNAME')
 TWITCH_CLIENT_ID = os.getenv('TWITCH_CLIENT_ID')
 TWITCH_CLIENT_SECRET = os.getenv('TWITCH_CLIENT_SECRET')
 
-# Настройки клиента
+# Настройки клиента для использования команд
 intents = discord.Intents.default()
 intents.message_content = True   # Чтобы читать текст сообщений
-client = discord.Client(intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Переменная для хранения ID первого сообщения
 message_id = None
@@ -58,59 +59,53 @@ def get_stream_info():
         print("Ошибка при получении данных о стриме:", response.status_code)
         return None, None
 
-@client.event
+@bot.event
 async def on_ready():
-    print(f"Зашёл как {client.user}")
+    print(f"Зашёл как {bot.user}")
 
-@client.event
-async def on_message(message):
+# Обработка команды !test
+@bot.command()
+async def test(ctx):
     global message_id  # Добавили объявление переменной как глобальной
     
-    # Игнорируем собственные сообщения
-    if message.author.id == client.user.id:
-        return
+    # Получаем информацию о стриме
+    game_name, viewer_count = get_stream_info()
+    
+    if game_name is None:
+        game_name = "Неизвестно"
+        viewer_count = "Нет данных"
 
-    # Тестовая команда для проверки уведомлений
-    if message.content == "!test":
-        channel = client.get_channel(CHANNEL_ID)
+    # Создаем красивое сообщение с использованием Embed
+    embed = discord.Embed(
+        title=f"🎮 {TWITCH_USERNAME} в эфире! 🔴",
+        description=f"Присоединяйтесь к стриму {TWITCH_USERNAME} на Twitch.",
+        color=discord.Color.red()
+    )
 
-        # Получаем информацию о стриме
-        game_name, viewer_count = get_stream_info()
-        
-        if game_name is None:
-            game_name = "Неизвестно"
-            viewer_count = "Нет данных"
+    # Добавляем поля с информацией
+    embed.add_field(name="Ссылка на стрим:", value=f"[Перейти на Twitch](https://www.twitch.tv/{TWITCH_USERNAME})", inline=False)
+    embed.add_field(name="Игра:", value=game_name, inline=True)
+    embed.add_field(name="Зрители:", value=viewer_count, inline=True)
 
-        # Создаем красивое сообщение с использованием Embed
-        embed = discord.Embed(
-            title=f"🎮 {TWITCH_USERNAME} в эфире! 🔴",
-            description=f"Присоединяйтесь к стриму {TWITCH_USERNAME} на Twitch.",
-            color=discord.Color.red()
+    # Устанавливаем миниатюру и подпись
+    embed.set_thumbnail(url="https://static-cdn.jtvnw.net/jtv_user_pictures/twitch_profile_image.png")  # Логотип Twitch
+    embed.set_footer(text="Created by stupa | Discord: stupapupa___", icon_url="https://cdn.discordapp.com/icons/your_icon.png")
+
+    # Если сообщение не отправлялось раньше, отправляем его
+    channel = bot.get_channel(CHANNEL_ID)
+    if message_id is None:
+        msg = await channel.send(
+            f"@everyone",  # Уведомление для всех участников сервера
+            embed=embed
         )
-
-        # Добавляем поля с информацией
-        embed.add_field(name="Ссылка на стрим:", value=f"[Перейти на Twitch](https://www.twitch.tv/{TWITCH_USERNAME})", inline=False)
-        embed.add_field(name="Игра:", value=game_name, inline=True)
-        embed.add_field(name="Зрители:", value=viewer_count, inline=True)
-
-        # Устанавливаем миниатюру и подпись
-        embed.set_thumbnail(url="https://static-cdn.jtvnw.net/jtv_user_pictures/twitch_profile_image.png")  # Логотип Twitch
-        embed.set_footer(text="Created by stupa | Discord: stupapupa___", icon_url="https://cdn.discordapp.com/icons/your_icon.png")
-
-        # Если сообщение не отправлялось раньше, отправляем его
-        if message_id is None:
-            msg = await channel.send(
-                f"@everyone",  # Уведомление для всех участников сервера
-                embed=embed
-            )
-            message_id = msg.id  # Сохраняем ID первого сообщения
-        else:
-            # Если сообщение уже было отправлено, обновляем его
-            msg = await channel.fetch_message(message_id)
-            await msg.edit(
-                embed=embed
-            )
+        message_id = msg.id  # Сохраняем ID первого сообщения
+    else:
+        # Если сообщение уже было отправлено, обновляем его
+        msg = await channel.fetch_message(message_id)
+        await msg.edit(
+            embed=embed
+        )
 
 # Этот блок кода будет выполнен, если бот запускается как основной файл
 if __name__ == "__main__":
-    client.run(DISCORD_TOKEN)
+    bot.run(DISCORD_TOKEN)
