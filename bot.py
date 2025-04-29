@@ -82,12 +82,12 @@ async def test(ctx):
     # Создаем красивое сообщение с использованием Embed
     embed = discord.Embed(
         title=f"🎮 {TWITCH_USERNAME} в эфире! 🔴",
-        description=f"Присоединяйтесь к стриму {TWITCH_USERNAME} на Twitch.",
+        description=f"Присоединяйтесь к стриму {Wooflyaa} на Twitch.",
         color=discord.Color.red()
     )
 
     # Добавляем поля с информацией
-    embed.add_field(name="Ссылка на стрим:", value=f"[Перейти на Twitch](https://www.twitch.tv/{TWITCH_USERNAME})", inline=False)
+    embed.add_field(name="Ссылка на стрим:", value=f"[Перейти на Twitch](https://www.twitch.tv/{Wooflyaa})", inline=False)
     embed.add_field(name="Игра:", value=game_name, inline=True)
     embed.add_field(name="Зрители:", value=viewer_count, inline=True)
 
