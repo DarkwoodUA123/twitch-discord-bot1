@@ -14,9 +14,14 @@ TWITCH_USERNAME = os.getenv('TWITCH_USERNAME')
 TWITCH_CLIENT_ID = os.getenv('TWITCH_CLIENT_ID')
 TWITCH_CLIENT_SECRET = os.getenv('TWITCH_CLIENT_SECRET')
 
+# Проверяем, что все переменные окружения загружены
+if not DISCORD_TOKEN or not TWITCH_USERNAME or not TWITCH_CLIENT_ID or not TWITCH_CLIENT_SECRET:
+    print("Ошибка: Отсутствуют необходимые переменные окружения.")
+    exit(1)
+
 # Настройки клиента для использования команд
 intents = discord.Intents.default()
-intents.message_content = True  # Чтобы читать текст сообщений
+intents.message_content = True   # Чтобы читать текст сообщений
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Переменная для хранения ID первого сообщения
@@ -34,16 +39,12 @@ def get_twitch_access_token():
         "grant_type": "client_credentials"
     }
     response = requests.post(url, params=params)
+    print(f"Ответ от Twitch (получение токена): {response.status_code}, {response.text}")
     
-    # Логируем статус ответа и содержимое
-    print(f"Получен ответ от Twitch API: {response.status_code}")
     if response.status_code == 200:
-        print("Токен доступа получен успешно")
-        access_token = response.json()['access_token']
-        print(f"Токен доступа: {access_token[:20]}...")  # Выводим только первые 20 символов токена для безопасности
-        return access_token
+        return response.json()['access_token']
     else:
-        print(f"Ошибка при получении токена: {response.status_code}, {response.text}")
+        print("Ошибка при получении токена:", response.status_code)
         return None
 
 # Получение информации о стриме
@@ -59,22 +60,20 @@ def get_stream_info():
         "Authorization": f"Bearer {access_token}"
     }
     response = requests.get(url, headers=headers)
-    
-    # Логируем статус ответа и содержимое
-    print(f"Получен ответ от Twitch API о стриме: {response.status_code}")
+    print(f"Ответ от Twitch (получение информации о стриме): {response.status_code}, {response.text}")
+
     if response.status_code == 200:
         json_data = response.json()
         if json_data.get('data'):
             stream_data = json_data['data'][0]
             game_name = stream_data['game_name']
             viewer_count = stream_data['viewer_count']
-            print(f"Стрим активен! Игра: {game_name}, Зрители: {viewer_count}")
             return game_name, viewer_count
         else:
-            print("Стрим не активен или нет данных о стриме.")
+            print("Нет активного стрима или ошибка данных:", json_data)
             return None
     else:
-        print(f"Ошибка при получении данных о стриме: {response.status_code}, {response.text}")
+        print("Ошибка при получении данных о стриме:", response.status_code, response.text)
         return None
 
 @bot.event
@@ -90,7 +89,7 @@ async def test(ctx):
 
     # Получаем информацию о стриме
     stream_info = get_stream_info()
-    
+
     # Если нет данных о стриме, устанавливаем значения по умолчанию
     if stream_info is None:
         game_name = "Неизвестно"
