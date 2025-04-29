@@ -57,7 +57,7 @@ def get_stream_info():
         return game_name, viewer_count
     else:
         print("Ошибка при получении данных о стриме:", response.status_code)
-        return None, None
+        return None  # Возвращаем None, если не удалось получить данные
 
 @bot.event
 async def on_ready():
@@ -67,13 +67,17 @@ async def on_ready():
 @bot.command()
 async def test(ctx):
     global message_id  # Добавили объявление переменной как глобальной
-    
+
+    print("Команда !test была вызвана")
+
     # Получаем информацию о стриме
-    game_name, viewer_count = get_stream_info()
+    stream_info = get_stream_info()
     
-    if game_name is None:
+    if stream_info is None:
         game_name = "Неизвестно"
         viewer_count = "Нет данных"
+    else:
+        game_name, viewer_count = stream_info
 
     # Создаем красивое сообщение с использованием Embed
     embed = discord.Embed(
