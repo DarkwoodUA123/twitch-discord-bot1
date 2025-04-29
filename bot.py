@@ -1,32 +1,39 @@
-import os
-import asyncio
-import time
 import discord
+import asyncio
+import os
+import time
 
-# Путь для хранения логов
-log_file_path = "stream_logs/stream_log.txt"
+# Ваши переменные и настройки
+TWITCH_USERNAME = "your_twitch_username"  # Убедитесь, что имя стримера правильное
+CHANNEL_ID = int(os.getenv("CHANNEL_ID"))  # ID канала Discord
+GIF_URL = "https://media.giphy.com/media/your_gif_url_here.gif"  # Замените на ваш URL для гифки
 
-# Убедимся, что директория для логов существует
-if not os.path.exists("stream_logs"):
-    os.makedirs("stream_logs")
+# Инициализация клиента Discord
+intents = discord.Intents.default()
+intents.message_content = True
+bot = discord.Client(intents=intents)
 
-# Добавим переменные для отслеживания
+# Переменные для отслеживания состояния стрима
+stream_live = False
 stream_start_time = None
 stream_end_time = None
 message_count = 0  # Счётчик сообщений
 
+# Обработчик события при запуске бота
 @bot.event
 async def on_ready():
     print(f"Зашёл как {bot.user}")
     bot.loop.create_task(check_stream_loop())
 
+# Основной цикл проверки стрима
 async def check_stream_loop():
     global stream_live, stream_start_time, stream_end_time, message_count
     await bot.wait_until_ready()
     channel = bot.get_channel(CHANNEL_ID)
 
     while not bot.is_closed():
-        stream_info = get_stream_info()
+        stream_info = get_stream_info()  # Функция получения информации о стриме
+
         if stream_info:
             if not stream_live:
                 stream_live = True
@@ -46,7 +53,7 @@ async def check_stream_loop():
                 msg = await channel.send("@everyone", embed=embed)
                 message_count += 1  # Увеличиваем счётчик сообщений
             else:
-                # Если стрим уже активен, просто обновляем его
+                # Если стрим уже активен, обновляем его
                 game_name, viewer_count = stream_info
                 embed = discord.Embed(
                     title=f"🎮 {TWITCH_USERNAME} в эфире! 🔴",
@@ -70,7 +77,7 @@ async def check_stream_loop():
                 print(f"Продолжительность стрима: {stream_duration // 60} минут {stream_duration % 60} секунд.")
                 print(f"Количество сообщений: {message_count}")
                 # Сохраняем данные в файл
-                with open(log_file_path, "a") as log_file:
+                with open("stream_logs/stream_log.txt", "a") as log_file:
                     log_file.write(f"Стрим {TWITCH_USERNAME} завершился!\n")
                     log_file.write(f"Продолжительность: {stream_duration // 60} минут {stream_duration % 60} секунд.\n")
                     log_file.write(f"Сообщений за стрим: {message_count}\n")
@@ -78,4 +85,13 @@ async def check_stream_loop():
                 stream_live = False
                 message_count = 0
 
-        await asyncio.sleep(5)  # Проверка каждые 5 секунд
+        await asyncio.sleep(10)  # Проверка каждые 10 секунд
+
+# Функция получения информации о стриме (замените на вашу)
+def get_stream_info():
+    # Возвращаем примерную информацию о стриме для теста
+    return ("Some Game", 100)  # Игра и количество зрителей
+
+# Запуск бота
+if __name__ == "__main__":
+    bot.run(os.getenv('DISCORD_TOKEN'))  # Здесь должен быть ваш Discord токен
