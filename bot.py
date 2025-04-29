@@ -22,6 +22,9 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # Переменная для хранения ID первого сообщения
 message_id = None
 
+# URL гифки для прикрепления к сообщению
+GIF_URL = "https://media.giphy.com/media/your_gif_url_here.gif"  # Замените на свой URL
+
 # Получение токена доступа для Twitch API
 def get_twitch_access_token():
     url = "https://id.twitch.tv/oauth2/token"
@@ -50,14 +53,19 @@ def get_stream_info():
     }
     response = requests.get(url, headers=headers)
     
-    if response.status_code == 200 and response.json()['data']:
-        stream_data = response.json()['data'][0]
-        game_name = stream_data['game_name']
-        viewer_count = stream_data['viewer_count']
-        return game_name, viewer_count
+    if response.status_code == 200:
+        json_data = response.json()
+        if json_data.get('data'):
+            stream_data = json_data['data'][0]
+            game_name = stream_data['game_name']
+            viewer_count = stream_data['viewer_count']
+            return game_name, viewer_count
+        else:
+            print("Нет активного стрима или ошибка данных:", json_data)
+            return None
     else:
-        print("Ошибка при получении данных о стриме:", response.status_code)
-        return None  # Возвращаем None, если не удалось получить данные
+        print("Ошибка при получении данных о стриме:", response.status_code, response.text)
+        return None
 
 @bot.event
 async def on_ready():
@@ -82,18 +90,21 @@ async def test(ctx):
     # Создаем красивое сообщение с использованием Embed
     embed = discord.Embed(
         title=f"🎮 {TWITCH_USERNAME} в эфире! 🔴",
-        description=f"Присоединяйтесь к стриму {Wooflyaa} на Twitch.",
+        description=f"Присоединяйтесь к стриму {TWITCH_USERNAME} на Twitch.",
         color=discord.Color.red()
     )
 
     # Добавляем поля с информацией
-    embed.add_field(name="Ссылка на стрим:", value=f"[Перейти на Twitch](https://www.twitch.tv/{Wooflyaa})", inline=False)
+    embed.add_field(name="Ссылка на стрим:", value=f"[Перейти на Twitch](https://www.twitch.tv/{TWITCH_USERNAME})", inline=False)
     embed.add_field(name="Игра:", value=game_name, inline=True)
     embed.add_field(name="Зрители:", value=viewer_count, inline=True)
 
     # Устанавливаем миниатюру и подпись
     embed.set_thumbnail(url="https://static-cdn.jtvnw.net/jtv_user_pictures/twitch_profile_image.png")  # Логотип Twitch
     embed.set_footer(text="Created by stupa | Discord: stupapupa___", icon_url="https://cdn.discordapp.com/icons/your_icon.png")
+
+    # Добавляем гифку
+    embed.set_image(url=GIF_URL)  # Устанавливаем гифку
 
     # Если сообщение не отправлялось раньше, отправляем его
     channel = bot.get_channel(CHANNEL_ID)
