@@ -81,6 +81,7 @@ async def test(ctx):
     # Получаем информацию о стриме
     stream_info = get_stream_info()
     
+    # Если нет данных о стриме, устанавливаем значения по умолчанию
     if stream_info is None:
         game_name = "Неизвестно"
         viewer_count = "Нет данных"
