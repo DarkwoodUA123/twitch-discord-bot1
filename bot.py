@@ -34,22 +34,31 @@ async def play(ctx, *, query):
     await play_from_youtube(ctx, query)
 
 async def play_from_youtube(ctx, query):
-    vc = ctx.author.voice.channel
+    if not ctx.author.voice:
+        return await ctx.send("❌ Ты должен быть в голосовом канале!")
+
+    voice_channel = ctx.author.voice.channel
+
     if ctx.voice_client is None:
-        await vc.connect()
+        await voice_channel.connect()
+    elif ctx.voice_client.channel != voice_channel:
+        await ctx.voice_client.move_to(voice_channel)
+
     voice_client = ctx.voice_client
 
     ydl_opts = {
         'format': 'bestaudio/best',
         'quiet': True,
         'default_search': 'ytsearch',
-        'extract_flat': 'in_playlist'
+        'extract_flat': False
     }
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(query, download=False)
         url = info['entries'][0]['url'] if 'entries' in info else info['url']
+
     source = await discord.FFmpegOpusAudio.from_probe(url, method='fallback')
-    voice_client.stop()
+    if voice_client.is_playing():
+        voice_client.stop()
     voice_client.play(source)
     await ctx.send(f"🎶 Воспроизвожу: {query}")
 
