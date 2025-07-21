@@ -1,70 +1,56 @@
 import os
 import discord
 from discord.ext import commands
-from dotenv import load_dotenv
-import yt_dlp
-
-load_dotenv()
+from yt_dlp import YoutubeDL
+from spotipy import Spotify
+from spotipy.oauth2 import SpotifyClientCredentials
 
 intents = discord.Intents.default()
 intents.message_content = True
-intents.voice_states = True
-
 bot = commands.Bot(command_prefix='!', intents=intents)
+
+SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
+SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
+sp = Spotify(auth_manager=SpotifyClientCredentials(client_id=SPOTIFY_CLIENT_ID, client_secret=SPOTIFY_CLIENT_SECRET))
 
 @bot.event
 async def on_ready():
-    print(f'✅ Бот запущен как {bot.user}')
+    print(f"✅ Бот запущен как {bot.user}")
 
-@bot.command(name='music')
-async def play(ctx, *, query: str):
-    if not ctx.author.voice:
-        await ctx.send("❌ Ты должен быть в голосовом канале!")
-        return
+@bot.command()
+async def spotify(ctx, *, query):
+    results = sp.search(q=query, type='track', limit=1)
+    if not results['tracks']['items']:
+        return await ctx.send("❌ Трек не найден в Spotify")
+    
+    track = results['tracks']['items'][0]
+    name = track['name']
+    artist = track['artists'][0]['name']
+    search_query = f"{artist} - {name}"
+    await play_from_youtube(ctx, search_query)
 
-    voice_channel = ctx.author.voice.channel
+@bot.command()
+async def play(ctx, *, query):
+    await play_from_youtube(ctx, query)
 
+async def play_from_youtube(ctx, query):
+    vc = ctx.author.voice.channel
     if ctx.voice_client is None:
-        vc = await voice_channel.connect()
-    else:
-        vc = ctx.voice_client
-        if vc.channel != voice_channel:
-            await vc.move_to(voice_channel)
+        await vc.connect()
+    voice_client = ctx.voice_client
 
     ydl_opts = {
-        'format': 'bestaudio',
-        'noplaylist': True,
+        'format': 'bestaudio/best',
         'quiet': True,
-        'default_search': 'ytsearch1',
-        'extract_flat': False
+        'default_search': 'ytsearch',
+        'extract_flat': 'in_playlist'
     }
+    with YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(query, download=False)
+        url = info['entries'][0]['url'] if 'entries' in info else info['url']
+    source = await discord.FFmpegOpusAudio.from_probe(url, method='fallback')
+    voice_client.stop()
+    voice_client.play(source)
+    await ctx.send(f"🎶 Воспроизвожу: {query}")
 
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(query, download=False)
-            # Если это результат поиска
-            if 'entries' in info:
-                info = info['entries'][0]
-            audio_url = info['url']
-
-        vc.stop()
-        vc.play(discord.FFmpegPCMAudio(audio_url), after=lambda e: print('▶️ Завершено'))
-        await ctx.send(f"🎶 Воспроизвожу: `{info.get('title', query)}`")
-
-    except Exception as e:
-        await ctx.send(f"❌ Ошибка: {e}")
-        print(f"❌ Ошибка воспроизведения: {e}")
-
-@bot.command(name='stop')
-async def stop(ctx):
-    if ctx.voice_client:
-        await ctx.voice_client.disconnect()
-        await ctx.send("🛑 Музыка остановлена и бот вышел из канала.")
-    else:
-        await ctx.send("❌ Бот не в голосовом канале.")
-
-TOKEN = os.getenv("DISCORD_BOT_TOKEN")
-if not TOKEN:
-    print("❌ Ошибка: переменная DISCORD_BOT_TOKEN не установлена.")
-else:
-    bot.run(TOKEN)
+bot.run(os.getenv("DISCORD_TOKEN"))
