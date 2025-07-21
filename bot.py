@@ -1,86 +1,44 @@
-import discord
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import asyncio
-import aiohttp
-import csv
-import io
 
-CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSzsYgiiESDo7Ve_01qavZ9MXvNlydWcmme-9BHc7dpv4iS2s20RsZnsaH8NW6o_4vSqJIbu8nERij2/pub?output=csv"
+BOT_TOKEN = "6125133441:AAEixM1Vr-GBrWyLI5TCtIiKbVsMg3471Q4"
+OWNER_ID = 948828396  # Твой Telegram ID
 
-DISCORD_CHANNEL_ID = 1395662330200723479  # Только этот канал
-MENTION_ROLES = "<@&1396557433064652913> <@&1396557452421365832>"
-OWNER_ID = 838188176878075925
+async def spam_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
 
-intents = discord.Intents.default()
-intents.message_content = True
-client = discord.Client(intents=intents)
-
-headers = []
-processed_rows = set()
-first_run = True
-
-async def check_new_responses():
-    global headers, processed_rows, first_run
-    await client.wait_until_ready()
-    channel = client.get_channel(DISCORD_CHANNEL_ID)
-
-    async with aiohttp.ClientSession() as session:
-        while not client.is_closed():
-            try:
-                async with session.get(CSV_URL) as resp:
-                    if resp.status == 200:
-                        data = await resp.text()
-                        reader = csv.reader(io.StringIO(data))
-                        rows = list(reader)
-
-                        if not headers and rows:
-                            headers = rows[0]
-                            rows = rows[1:]
-                        else:
-                            rows = rows[1:]
-
-                        if first_run:
-                            for row in rows:
-                                processed_rows.add(tuple(row))
-                            first_run = False
-                        else:
-                            for row in rows:
-                                row_key = tuple(row)
-                                if row_key not in processed_rows:
-                                    embed = discord.Embed(
-                                        title="Отчёт на Повышение | Central Patrol Division",
-                                        url="https://docs.google.com/forms/d/e/1FAIpQLSdj133lWU4c18RkFgIifRDCIuX9DzTRn2zQE4C_x1RYVikVsw/viewform?usp=header",
-                                        color=0x87CEEB
-                                    )
-                                    for q, a in zip(headers, row):
-                                        if a.strip():
-                                            embed.add_field(name=q, value=a.strip(), inline=False)
-
-                                    embed.set_image(url="https://i.imgur.com/cIDfrw8.png")
-                                    await channel.send(content=MENTION_ROLES, embed=embed)
-                                    processed_rows.add(row_key)
-                    else:
-                        print(f"Ошибка при получении CSV: статус {resp.status}")
-            except Exception as e:
-                print(f"Ошибка при запросе CSV: {e}")
-
-            await asyncio.sleep(5)
-
-@client.event
-async def on_ready():
-    print(f'Бот запущен как {client.user}')
-    client.loop.create_task(check_new_responses())
-
-@client.event
-async def on_message(message):
-    if message.author == client.user:
+    if user_id != OWNER_ID:
+        await update.message.reply_text("⛔ Ты не владелец бота.")
         return
 
-    if isinstance(message.channel, discord.DMChannel):
-        if message.author.id == OWNER_ID:
-            channel = client.get_channel(DISCORD_CHANNEL_ID)
-            if channel:
-                await channel.send(message.content)
-        else:
-            await message.channel.send("Не пиши, это без смысла")
+    if len(context.args) < 2:
+        await update.message.reply_text("❗ Использование:\n/спам <текст> <кол-во>")
+        return
 
-client.run(DISCORD_TOKEN)
+    text = " ".join(context.args[:-1])
+    try:
+        count = int(context.args[-1])
+    except ValueError:
+        await update.message.reply_text("❗ Кол-во должно быть числом.")
+        return
+
+    if count > 50:
+        count = 50
+        await update.message.reply_text("⚠️ Ограничено до 50 сообщений.")
+
+    for i in range(count):
+        try:
+            await update.message.reply_text(text)
+            await asyncio.sleep(0.07)
+        except Exception as e:
+            print(f"Ошибка при отправке: {e}")
+            break
+
+    await update.message.reply_text(f"✅ Отправлено {count} сообщений.")
+
+app = ApplicationBuilder().token(BOT_TOKEN).build()
+app.add_handler(CommandHandler(["спам", "spam"], spam_command))
+
+print("✅ Бот запущен")
+app.run_polling()
