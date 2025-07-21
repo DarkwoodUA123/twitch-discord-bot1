@@ -3,7 +3,6 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import asyncio
 
 BOT_TOKEN = "6125133441:AAH1DmGzp-MyNUlR2S_48ce4jveDFCC6mqc"
-OWNER_ID = 948828396  # Твой ID
 
 async def spam_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -23,14 +22,11 @@ async def spam_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❗ Кол-во должно быть числом.")
         return
 
-    if count > 50:
-        count = 50
-        await update.message.reply_text("⚠️ Ограничено до 50 сообщений.")
 
     for i in range(count):
         try:
             await update.message.reply_text(text)
-            await asyncio.sleep(0.07)
+            await asyncio.sleep(0.02)
         except Exception as e:
             print(f"Ошибка при отправке: {e}")
             break
