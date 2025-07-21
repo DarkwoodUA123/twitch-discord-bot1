@@ -1,3 +1,4 @@
+import asyncio
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
@@ -15,9 +16,15 @@ async def spam_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         text = args[0]
         count = int(args[1])
+        chat_id = update.effective_chat.id
 
-        for _ in range(count):
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+        await update.message.reply_text(f"🚀 Начинаю спам: {text} × {count}")
+
+        for i in range(count):
+            await context.bot.send_message(chat_id=chat_id, text=text)
+            await asyncio.sleep(0.7)  # ⏱ задержка 0.7 сек для обхода ограничения
+
+        await update.message.reply_text("✅ Спам завершён.")
 
     except Exception as e:
         await update.message.reply_text(f"❌ Ошибка: {e}")
