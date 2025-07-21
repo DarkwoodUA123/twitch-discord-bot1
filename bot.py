@@ -6,12 +6,6 @@ import yt_dlp
 
 load_dotenv()
 
-# Запись cookies в файл, если есть переменная окружения YOUTUBE_COOKIES
-cookies_content = os.getenv('YOUTUBE_COOKIES')
-if cookies_content:
-    with open('cookies.txt', 'w', encoding='utf-8') as f:
-        f.write(cookies_content)
-
 intents = discord.Intents.default()
 intents.message_content = True
 intents.voice_states = True
@@ -42,23 +36,32 @@ async def play(ctx, *, query: str):
         'noplaylist': True,
         'quiet': True,
         'default_search': 'ytsearch',
-        'extract_flat': False,
-        'cookiefile': 'cookies.txt' if cookies_content else None,
+        'outtmpl': 'song.%(ext)s',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        # Укажи путь к cookies, если используешь
+        # 'cookiefile': 'cookies.txt',
     }
 
+    # Скачиваем аудио в файл
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(query, download=False)
-        # Если результат - плейлист, берем первый трек
+        info = ydl.extract_info(query, download=True)
         if 'entries' in info:
             info = info['entries'][0]
-        url = info['url']
+
+    # Путь к mp3 файлу
+    filename = f"song.mp3"
 
     if vc.is_playing():
         vc.stop()
 
-    vc.play(discord.FFmpegPCMAudio(url), after=lambda e: print('▶️ Завершено'))
+    # Воспроизводим mp3 файл
+    vc.play(discord.FFmpegPCMAudio(filename), after=lambda e: print('▶️ Завершено'))
 
-    await ctx.send(f"🎶 Воспроизвожу: `{query}`")
+    await ctx.send(f"🎶 Воспроизвожу: `{info.get('title', query)}`")
 
 @bot.command(name='stop')
 async def stop(ctx):
