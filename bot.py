@@ -3,7 +3,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import asyncio
 
 BOT_TOKEN = "6125133441:AAEixM1Vr-GBrWyLI5TCtIiKbVsMg3471Q4"
-OWNER_ID = 948828396  # Твой Telegram ID
+OWNER_ID = 948828396  # Твой ID
 
 async def spam_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -13,7 +13,7 @@ async def spam_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if len(context.args) < 2:
-        await update.message.reply_text("❗ Использование:\n/спам <текст> <кол-во>")
+        await update.message.reply_text("❗ Использование:\n/spam <текст> <кол-во>")
         return
 
     text = " ".join(context.args[:-1])
@@ -38,7 +38,7 @@ async def spam_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ Отправлено {count} сообщений.")
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
-app.add_handler(CommandHandler(["спам", "spam"], spam_command))
+app.add_handler(CommandHandler(["spam"], spam_command))
 
 print("✅ Бот запущен")
 app.run_polling()
