@@ -8,6 +8,7 @@ CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSzsYgiiESDo7Ve_01qav
 
 DISCORD_CHANNEL_ID = 1395662330200723479  # Только этот канал
 MENTION_ROLES = "<@&1396557433064652913> <@&1396557452421365832>"
+OWNER_ID = 838188176878075925
 
 intents = discord.Intents.default()
 intents.message_content = True
