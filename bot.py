@@ -35,19 +35,33 @@ async def play(ctx, *, query: str):
         'format': 'bestaudio/best',
         'noplaylist': True,
         'quiet': True,
-        'extract_flat': False,
         'default_search': 'ytsearch',
-        'outtmpl': 'song.%(ext)s',
+        'extract_flat': False,
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(query, download=False)
-        url = info['url'] if 'url' in info else info['entries'][0]['url']
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(query, download=False)
+            if 'entries' in info:
+                info = info['entries'][0]
+            url = info['url']
+            title = info.get('title', query)
+    except Exception as e:
+        await ctx.send(f"❌ Ошибка при поиске/загрузке трека: {e}")
+        return
 
-    vc.stop()
-    vc.play(discord.FFmpegPCMAudio(url), after=lambda e: print('▶️ Завершено'))
+    def after_play(error):
+        if error:
+            print(f'Ошибка при воспроизведении: {error}')
+        else:
+            print('▶️ Воспроизведение завершено')
 
-    await ctx.send(f"🎶 Воспроизвожу: `{query}`")
+    if vc.is_playing():
+        vc.stop()
+
+    vc.play(discord.FFmpegPCMAudio(url), after=after_play)
+
+    await ctx.send(f"🎶 Воспроизвожу: **{title}**")
 
 @bot.command(name='stop')
 async def stop(ctx):
