@@ -1,5 +1,4 @@
-yt-dlp
 discord.py
-python-dotenv
-discord.py
-youtube_dl
+yt_dlp
+PyNaCl
+ffmpeg-python
