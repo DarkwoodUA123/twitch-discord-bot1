@@ -3,7 +3,6 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 import yt_dlp
-import asyncio
 
 load_dotenv()
 
@@ -13,71 +12,52 @@ intents.voice_states = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-music_queue = []
-
 @bot.event
 async def on_ready():
     print(f'✅ Бот запущен как {bot.user}')
 
-async def play_next(ctx):
-    if len(music_queue) > 0:
-        url, title = music_queue.pop(0)
-        ctx.voice_client.play(discord.FFmpegPCMAudio(url), after=lambda e: asyncio.run_coroutine_threadsafe(play_next(ctx), bot.loop))
-        await ctx.send(f"▶️ Сейчас играет: `{title}`")
-    else:
-        await ctx.voice_client.disconnect()
-        await ctx.send("✅ Очередь закончилась. Бот вышел из голосового канала.")
-
-@bot.command(name='play')
+@bot.command(name='music')
 async def play(ctx, *, query: str):
     if not ctx.author.voice:
-        return await ctx.send("❌ Ты должен быть в голосовом канале!")
+        await ctx.send("❌ Ты должен быть в голосовом канале!")
+        return
 
-    channel = ctx.author.voice.channel
+    voice_channel = ctx.author.voice.channel
 
-    if not ctx.voice_client:
-        await channel.connect()
+    if ctx.voice_client is None:
+        vc = await voice_channel.connect()
+    else:
+        vc = ctx.voice_client
+        if vc.channel != voice_channel:
+            await vc.move_to(voice_channel)
 
     ydl_opts = {
-        'format': 'bestaudio/best',
+        'format': 'bestaudio',
         'noplaylist': True,
         'quiet': True,
-        'default_search': 'ytsearch',
-        'cookiefile': 'cookies.txt',
+        'default_search': 'ytsearch1',
+        'extract_flat': False
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(query, download=False)
-        entry = info['entries'][0] if 'entries' in info else info
-        url = entry['url']
-        title = entry.get('title', 'неизвестный трек')
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(query, download=False)
+            # Если это результат поиска
+            if 'entries' in info:
+                info = info['entries'][0]
+            audio_url = info['url']
 
-    if ctx.voice_client.is_playing():
-        music_queue.append((url, title))
-        await ctx.send(f"➕ Добавлено в очередь: `{title}`")
-    else:
-        ctx.voice_client.play(discord.FFmpegPCMAudio(url), after=lambda e: asyncio.run_coroutine_threadsafe(play_next(ctx), bot.loop))
-        await ctx.send(f"🎶 Сейчас играет: `{title}`")
+        vc.stop()
+        vc.play(discord.FFmpegPCMAudio(audio_url), after=lambda e: print('▶️ Завершено'))
+        await ctx.send(f"🎶 Воспроизвожу: `{info.get('title', query)}`")
 
-@bot.command(name='skip')
-async def skip(ctx):
-    if ctx.voice_client and ctx.voice_client.is_playing():
-        ctx.voice_client.stop()
-        await ctx.send("⏭️ Пропущен трек.")
-    else:
-        await ctx.send("❌ Сейчас ничего не играет.")
-
-@bot.command(name='queue')
-async def queue(ctx):
-    if not music_queue:
-        return await ctx.send("📭 Очередь пуста.")
-    message = '\n'.join([f"{i+1}. {title}" for i, (_, title) in enumerate(music_queue)])
-    await ctx.send(f"🎶 Очередь треков:\n{message}")
+    except Exception as e:
+        await ctx.send(f"❌ Ошибка: {e}")
+        print(f"❌ Ошибка воспроизведения: {e}")
 
 @bot.command(name='stop')
 async def stop(ctx):
     if ctx.voice_client:
-        music_queue.clear()
         await ctx.voice_client.disconnect()
         await ctx.send("🛑 Музыка остановлена и бот вышел из канала.")
     else:
@@ -85,6 +65,6 @@ async def stop(ctx):
 
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 if not TOKEN:
-    print("❌ Ошибка: DISCORD_BOT_TOKEN не найден.")
+    print("❌ Ошибка: переменная DISCORD_BOT_TOKEN не установлена.")
 else:
     bot.run(TOKEN)
