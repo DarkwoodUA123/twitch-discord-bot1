@@ -3,3 +3,4 @@ yt_dlp
 PyNaCl
 ffmpeg-python
 python-dotenv
+pip install discord.py yt-dlp python-dotenv pynacl
