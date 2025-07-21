@@ -48,7 +48,7 @@ async def check_new_responses():
                                 if row_key not in processed_rows:
                                     embed = discord.Embed(
                                         title="Отчёт на Повышение | Central Patrol Division",
-                                        url="https://docs.google.com/forms/d/e/1FAIpQLSdj133lWU4c18RkFgIifRDCIuX9DzTRn2zQE4C_x1RYVikVsw/viewform",
+                                        url="https://docs.google.com/forms/d/e/1FAIpQLSdj133lWU4c18RkFgIifRDCIuX9DzTRn2zQE4C_x1RYVikVsw/viewform?usp=header",
                                         color=0x87CEEB
                                     )
                                     for q, a in zip(headers, row):
