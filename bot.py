@@ -6,6 +6,12 @@ import yt_dlp
 
 load_dotenv()
 
+# Запись cookies в файл, если есть переменная окружения YOUTUBE_COOKIES
+cookies_content = os.getenv('YOUTUBE_COOKIES')
+if cookies_content:
+    with open('cookies.txt', 'w', encoding='utf-8') as f:
+        f.write(cookies_content)
+
 intents = discord.Intents.default()
 intents.message_content = True
 intents.voice_states = True
@@ -37,31 +43,22 @@ async def play(ctx, *, query: str):
         'quiet': True,
         'default_search': 'ytsearch',
         'extract_flat': False,
+        'cookiefile': 'cookies.txt' if cookies_content else None,
     }
 
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(query, download=False)
-            if 'entries' in info:
-                info = info['entries'][0]
-            url = info['url']
-            title = info.get('title', query)
-    except Exception as e:
-        await ctx.send(f"❌ Ошибка при поиске/загрузке трека: {e}")
-        return
-
-    def after_play(error):
-        if error:
-            print(f'Ошибка при воспроизведении: {error}')
-        else:
-            print('▶️ Воспроизведение завершено')
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(query, download=False)
+        # Если результат - плейлист, берем первый трек
+        if 'entries' in info:
+            info = info['entries'][0]
+        url = info['url']
 
     if vc.is_playing():
         vc.stop()
 
-    vc.play(discord.FFmpegPCMAudio(url), after=after_play)
+    vc.play(discord.FFmpegPCMAudio(url), after=lambda e: print('▶️ Завершено'))
 
-    await ctx.send(f"🎶 Воспроизвожу: **{title}**")
+    await ctx.send(f"🎶 Воспроизвожу: `{query}`")
 
 @bot.command(name='stop')
 async def stop(ctx):
