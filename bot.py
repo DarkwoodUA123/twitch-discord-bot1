@@ -1,8 +1,7 @@
-import asyncio
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-TOKEN = "6125133441:AAH1DmGzp-MyNUlR2S_48ce4jveDFCC6mqc"
+TOKEN = "ТВОЙ_ТОКЕН"
 active_spams = {}
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -26,23 +25,20 @@ async def spam(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"🚀 Начинаю спам: {text} × {count}")
 
     sent = 0
-    for i in range(count):
+    for _ in range(count):
         if not active_spams.get(chat_id):
             await update.message.reply_text("⛔ Спам остановлен.")
             break
 
         try:
-            await context.bot.send_message(chat_id=chat_id, text=f"{text}")
+            await context.bot.send_message(chat_id=chat_id, text=text)
             sent += 1
-            if sent % 10 == 0:
-                await update.message.reply_text(f"📤 Отправлено: {sent}/{count}")
-            await asyncio.sleep(0.35)  # Оптимальная скорость
         except Exception as e:
             await update.message.reply_text(f"❌ Ошибка: {e}")
             break
 
     if active_spams.get(chat_id):
-        await update.message.reply_text("✅ Спам завершён.")
+        await update.message.reply_text(f"✅ Спам завершён: {sent}/{count}")
     active_spams[chat_id] = False
 
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
