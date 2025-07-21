@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import asyncio
 
-BOT_TOKEN = "6125133441:AAEixM1Vr-GBrWyLI5TCtIiKbVsMg3471Q4"
+BOT_TOKEN = "6125133441:AAH1DmGzp-MyNUlR2S_48ce4jveDFCC6mqc"
 OWNER_ID = 948828396  # Твой ID
 
 async def spam_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
